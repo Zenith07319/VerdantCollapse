@@ -296,6 +296,142 @@ export default class BootScene extends Phaser.Scene {
       ctx.fillStyle = vgn; ctx.fillRect(0, 0, w, h);
     });
 
+    // ── verdant_leviathan (64×64) ────────────────────────────────────
+    tex('verdant_leviathan', 64, 64, (ctx, w, h) => {
+      const cx = w / 2, cy = h / 2;
+      // 외곽 독기 오라
+      const aura = ctx.createRadialGradient(cx, cy, 16, cx, cy, 32);
+      aura.addColorStop(0, 'rgba(60,200,60,0)');
+      aura.addColorStop(1, 'rgba(20,100,20,0.35)');
+      ctx.fillStyle = aura;
+      ctx.beginPath(); ctx.arc(cx, cy, 32, 0, Math.PI * 2); ctx.fill();
+      // 3개 촉수 (보조 머리)
+      ctx.strokeStyle = '#1a5500'; ctx.lineWidth = 5;
+      [[cx, cy - 28], [cx - 24, cy + 16], [cx + 24, cy + 16]].forEach(([tx, ty]) => {
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty); ctx.stroke();
+      });
+      // 몸체
+      const body = ctx.createRadialGradient(cx - 3, cy - 3, 4, cx, cy, 20);
+      body.addColorStop(0,   '#a0ee40');
+      body.addColorStop(0.4, '#33aa11');
+      body.addColorStop(1,   '#0d3a05');
+      ctx.fillStyle = body;
+      ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#061e02'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI * 2); ctx.stroke();
+      // 비늘 문양
+      ctx.strokeStyle = 'rgba(180,255,80,0.3)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const a = (Math.PI * 2 / 5) * i;
+        ctx.beginPath(); ctx.arc(cx + Math.cos(a)*11, cy + Math.sin(a)*11, 4, 0, Math.PI * 2); ctx.stroke();
+      }
+      // 눈 3개
+      [[cx, cy - 8], [cx - 7, cy + 4], [cx + 7, cy + 4]].forEach(([ex, ey]) => {
+        const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, 3.5);
+        eg.addColorStop(0, '#ffffff'); eg.addColorStop(0.3, '#aaff44'); eg.addColorStop(1, '#226600');
+        ctx.fillStyle = eg;
+        ctx.beginPath(); ctx.arc(ex, ey, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#001100';
+        ctx.beginPath(); ctx.arc(ex, ey, 1.2, 0, Math.PI * 2); ctx.fill();
+      });
+    });
+
+    // ── ashen_colossus (72×72) ───────────────────────────────────────
+    tex('ashen_colossus', 72, 72, (ctx, w, h) => {
+      const cx = w / 2, cy = h / 2;
+      // 그림자
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.ellipse(cx + 3, cy + 6, 28, 18, 0, 0, Math.PI * 2); ctx.fill();
+      // 어깨 돌기 4개
+      ctx.fillStyle = '#555555';
+      [[cx - 22, cy - 10], [cx + 22, cy - 10], [cx - 16, cy + 18], [cx + 16, cy + 18]].forEach(([sx, sy]) => {
+        ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI * 2); ctx.stroke();
+      });
+      // 몸체
+      const rock = ctx.createRadialGradient(cx - 4, cy - 4, 5, cx, cy, 24);
+      rock.addColorStop(0,   '#888888');
+      rock.addColorStop(0.4, '#555555');
+      rock.addColorStop(0.8, '#333333');
+      rock.addColorStop(1,   '#111111');
+      ctx.fillStyle = rock;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 26); ctx.lineTo(cx + 22, cy - 8);
+      ctx.lineTo(cx + 20, cy + 22); ctx.lineTo(cx - 20, cy + 22);
+      ctx.lineTo(cx - 22, cy - 8); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 2; ctx.stroke();
+      // 용암 균열
+      ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 2;
+      ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 6;
+      [[cx - 8, cy - 14, cx + 4, cy + 6], [cx + 10, cy - 8, cx - 2, cy + 14],
+       [cx - 4, cy - 4, cx + 8, cy + 8]].forEach(([x1, y1, x2, y2]) => {
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      });
+      ctx.shadowBlur = 0;
+      // 눈 (주황 공막)
+      [[cx - 8, cy - 4], [cx + 8, cy - 4]].forEach(([ex, ey]) => {
+        const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, 5);
+        eg.addColorStop(0, '#ffffff'); eg.addColorStop(0.4, '#ff8800'); eg.addColorStop(1, '#550000');
+        ctx.fillStyle = eg;
+        ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1a0000';
+        ctx.beginPath(); ctx.arc(ex, ey, 1.8, 0, Math.PI * 2); ctx.fill();
+      });
+    });
+
+    // ── void_patriarch (80×80) ───────────────────────────────────────
+    tex('void_patriarch', 80, 80, (ctx, w, h) => {
+      const cx = w / 2, cy = h / 2;
+      // 허공 오라
+      const void_aura = ctx.createRadialGradient(cx, cy, 10, cx, cy, 40);
+      void_aura.addColorStop(0, 'rgba(100,0,180,0)');
+      void_aura.addColorStop(1, 'rgba(40,0,80,0.5)');
+      ctx.fillStyle = void_aura;
+      ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI * 2); ctx.fill();
+      // 에너지 촉수 6개
+      ctx.strokeStyle = '#6600cc'; ctx.lineWidth = 3;
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI * 2 / 6) * i;
+        const r1 = 18, r2 = 36;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+        ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+        ctx.stroke();
+      }
+      // 중심 몸체
+      const core = ctx.createRadialGradient(cx - 4, cy - 4, 3, cx, cy, 22);
+      core.addColorStop(0,   '#cc88ff');
+      core.addColorStop(0.3, '#8822cc');
+      core.addColorStop(0.7, '#3a006a');
+      core.addColorStop(1,   '#0a000f');
+      ctx.fillStyle = core;
+      ctx.beginPath(); ctx.arc(cx, cy, 22, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#1a0033'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, 22, 0, Math.PI * 2); ctx.stroke();
+      // 내부 별 문양
+      ctx.strokeStyle = 'rgba(200,140,255,0.4)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 8; i++) {
+        const a = (Math.PI * 2 / 8) * i;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a)*18, cy + Math.sin(a)*18); ctx.stroke();
+      }
+      // 눈 5개 (원형 배치 + 중앙 1)
+      const eyePositions = [[cx, cy]];
+      for (let i = 0; i < 4; i++) {
+        const a = (Math.PI * 2 / 4) * i + Math.PI / 4;
+        eyePositions.push([cx + Math.cos(a) * 11, cy + Math.sin(a) * 11]);
+      }
+      eyePositions.forEach(([ex, ey], idx) => {
+        const r = idx === 0 ? 5 : 3;
+        const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, r);
+        eg.addColorStop(0, '#ffffff'); eg.addColorStop(0.4, '#dd88ff'); eg.addColorStop(1, '#440066');
+        ctx.fillStyle = eg;
+        ctx.beginPath(); ctx.arc(ex, ey, r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#110022';
+        ctx.beginPath(); ctx.arc(ex, ey, r * 0.4, 0, Math.PI * 2); ctx.fill();
+      });
+    });
+
     // ── FX 텍스처 (링/파티클 — Phaser Graphics 유지) ─────────────────
     const g = this.make.graphics({ x: 0, y: 0, add: false });
 

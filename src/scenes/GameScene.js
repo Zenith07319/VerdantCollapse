@@ -53,7 +53,13 @@ export default class GameScene extends Phaser.Scene {
     this.gameTime     = 0;
     this.spawnAccum   = 0;
     this.isOver       = false;
-    this.ps.riptideBuff = 0; // riptide 패시브 버프 잔여 시간
+    this.isPaused     = false;
+    this.activeBoss   = null;
+    this.spawnedBosses = new Set();
+    this.ps.riptideBuff = 0;
+
+    this.pauseKey = this.input.keyboard.addKey('ESC');
+    this.pKey     = this.input.keyboard.addKey('P');
 
     this.scene.launch('HUDScene');
     this.hud = this.scene.get('HUDScene');
@@ -61,9 +67,13 @@ export default class GameScene extends Phaser.Scene {
 
   // ── 매 프레임 ─────────────────────────────────────────────────────────
   update(time, delta) {
-    if (this.isOver) return;
-    const dt = delta / 1000;
+    if (Phaser.Input.Keyboard.JustDown(this.pauseKey) || Phaser.Input.Keyboard.JustDown(this.pKey)) {
+      if (!this.isOver) this.togglePause();
+      return;
+    }
+    if (this.isOver || this.isPaused) return;
 
+    const dt = delta / 1000;
     this.gameTime += dt;
     if (this.gameTime >= RUN_DURATION) { this.endGame(true); return; }
 
@@ -72,9 +82,16 @@ export default class GameScene extends Phaser.Scene {
     this.updateWeapons(dt);
     this.updateXPGems();
     this.spawnEnemies(dt);
+    this.checkBossSpawns();
     this.updateHpRegen(dt);
     if (this.ps.iframes   > 0) this.ps.iframes   -= dt;
     if (this.ps.riptideBuff > 0) this.ps.riptideBuff -= dt;
+  }
+
+  togglePause() {
+    if (this.scene.isActive('LevelUpScene')) return;
+    this.isPaused = !this.isPaused;
+    if (this.isPaused) { this.physics.pause(); } else { this.physics.resume(); }
   }
 
   // ── 플레이어 이동 ──────────────────────────────────────────────────────
@@ -92,6 +109,37 @@ export default class GameScene extends Phaser.Scene {
   updateHpRegen(dt) {
     if (this.ps.hpRegen > 0 && this.ps.hp < this.ps.maxHp)
       this.ps.hp = Math.min(this.ps.maxHp, this.ps.hp + this.ps.hpRegen * dt);
+  }
+
+  // ── 보스 스폰 ─────────────────────────────────────────────────────────
+  checkBossSpawns() {
+    const minutes = this.gameTime / 60;
+    for (const def of Object.values(ENEMIES)) {
+      if (!def.isBoss) continue;
+      if (minutes >= def.spawnMinute && !this.spawnedBosses.has(def.id)) {
+        this.spawnedBosses.add(def.id);
+        this.spawnBoss(def);
+      }
+    }
+  }
+
+  spawnBoss(def) {
+    const pos = this.getSpawnPos();
+    const e = this.enemies.get(pos.x, pos.y, def.id);
+    if (!e) return;
+    const minutes = this.gameTime / 60;
+    const hpMult = 1 + def.hpScale * minutes;
+    e.setActive(true).setVisible(true).setDepth(6);
+    e.setCircle(def.radius);
+    e.def = def;
+    e.hp = def.hp * hpMult;
+    e.maxHp = e.hp;
+    e.contactCooldown = 0;
+    e.slowTimer = 0; e.slowAmount = 0;
+    e.burnTimer = 0; e.burnDmg = 0; e.burnAccum = 0;
+    e.rootTimer = 0;
+    this.activeBoss = e;
+    this.cameras.main.shake(500, 0.025);
   }
 
   // ── 적 스폰 ────────────────────────────────────────────────────────────
@@ -364,6 +412,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   killEnemy(enemy) {
+    if (enemy.def.isBoss && this.activeBoss === enemy) this.activeBoss = null;
+
     // riptide: 감속 중 처치 시 Tide Pulse 관통+2 버프
     if (enemy.slowTimer > 0) {
       const rt = this.equippedPassives.find(p => p.def.id === 'riptide');
@@ -374,7 +424,7 @@ export default class GameScene extends Phaser.Scene {
     this.ps.gold += enemy.def.gold;
     this.addXP(enemy.def.xp);
 
-    const gemCount = enemy.def.isElite ? 3 : 1;
+    const gemCount = enemy.def.isBoss ? 12 : enemy.def.isElite ? 3 : 1;
     for (let i = 0; i < gemCount; i++) {
       const gem = this.xpGems.get(
         enemy.x + Phaser.Math.FloatBetween(-15, 15),
@@ -449,7 +499,7 @@ export default class GameScene extends Phaser.Scene {
     this.scene.bringToTop('LevelUpScene');
   }
 
-  resumeFromLevelUp() { this.physics.resume(); }
+  resumeFromLevelUp() { if (!this.isPaused) this.physics.resume(); }
 
   // ── 무기/패시브 관리 ──────────────────────────────────────────────────
   addWeapon(weaponId) {

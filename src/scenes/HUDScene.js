@@ -45,6 +45,28 @@ export default class HUDScene extends Phaser.Scene {
         }).setOrigin(1, 1).setScrollFactor(0).setDepth(102)
       );
     }
+
+    // ── 보스 HP 바 (하단 중앙, 기본 숨김) ────────────────────────
+    const bY = H - 44;
+    this.bossNameText = this.add.text(W / 2, bY - 2, '', {
+      fontSize: '13px', fontFamily: 'monospace', color: '#ff7777',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5, 1).setScrollFactor(0).setDepth(102).setVisible(false);
+    this.bossBg   = this.add.rectangle(W / 2, bY, 404, 18, 0x111111)
+      .setOrigin(0.5, 0).setScrollFactor(0).setDepth(100).setVisible(false);
+    this.bossFill = this.add.rectangle(W / 2 - 200, bY + 2, 400, 14, 0xff3333)
+      .setOrigin(0, 0).setScrollFactor(0).setDepth(101).setVisible(false);
+
+    // ── 일시정지 오버레이 (기본 숨김) ─────────────────────────────
+    this.pauseOverlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000)
+      .setAlpha(0.65).setScrollFactor(0).setDepth(200).setVisible(false);
+    this.pauseTitle = this.add.text(W / 2, H / 2 - 22, 'PAUSED', {
+      fontSize: '52px', fontFamily: 'monospace', color: '#ffffff',
+      stroke: '#000000', strokeThickness: 5,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(201).setVisible(false);
+    this.pauseHint = this.add.text(W / 2, H / 2 + 36, 'Press [P] or [ESC] to resume', {
+      fontSize: '15px', fontFamily: 'monospace', color: '#aaaaaa',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(201).setVisible(false);
   }
 
   update() {
@@ -88,5 +110,25 @@ export default class HUDScene extends Phaser.Scene {
         this.weaponSlotTexts[i].setText('');
       }
     }
+
+    // 보스 HP 바
+    const boss = g.activeBoss;
+    const bossAlive = !!(boss && boss.active);
+    this.bossBg.setVisible(bossAlive);
+    this.bossFill.setVisible(bossAlive);
+    this.bossNameText.setVisible(bossAlive);
+    if (bossAlive) {
+      const ratio = Math.max(0, boss.hp / boss.maxHp);
+      this.bossFill.width = Math.round(400 * ratio);
+      const col = ratio > 0.5 ? 0xff3333 : ratio > 0.25 ? 0xff6600 : 0xffcc00;
+      this.bossFill.setFillStyle(col);
+      this.bossNameText.setText(boss.def.name);
+    }
+
+    // 일시정지 오버레이
+    const paused = !!(g.isPaused);
+    this.pauseOverlay.setVisible(paused);
+    this.pauseTitle.setVisible(paused);
+    this.pauseHint.setVisible(paused);
   }
 }

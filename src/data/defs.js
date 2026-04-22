@@ -28,6 +28,28 @@ export const ENEMIES = {
     color: 0xff3366, hpScale: 0.1, spawnWeight: 0.3,
     minMinute: 3, isElite: true,
   },
+
+  verdant_leviathan: {
+    id: 'verdant_leviathan', name: 'Verdant Leviathan',
+    hp: 800, speed: 55, damage: 35, contactCooldown: 0.8,
+    xp: 200, gold: 50, radius: 28,
+    hpScale: 0.1, spawnWeight: 0,
+    isBoss: true, spawnMinute: 5,
+  },
+  ashen_colossus: {
+    id: 'ashen_colossus', name: 'Ashen Colossus',
+    hp: 2000, speed: 65, damage: 50, contactCooldown: 0.8,
+    xp: 500, gold: 100, radius: 34,
+    hpScale: 0.12, spawnWeight: 0,
+    isBoss: true, spawnMinute: 10,
+  },
+  void_patriarch: {
+    id: 'void_patriarch', name: 'Void Patriarch',
+    hp: 5000, speed: 75, damage: 70, contactCooldown: 0.6,
+    xp: 1000, gold: 200, radius: 42,
+    hpScale: 0.15, spawnWeight: 0,
+    isBoss: true, spawnMinute: 15,
+  },
 };
 
 // ── 스폰율 곡선 (분 → 초당 스폰 수) ────────────────────────────────────
