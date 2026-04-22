@@ -1,0 +1,16 @@
+# Unity 잔재 (웹 게임에 불필요)
+Assets/_Game/Scripts/
+Assets/_Game/Resources/
+Assets/_Game/Scenes/
+Assets/_Game/Prefabs/
+Assets/_Game/Data/
+Library/
+Temp/
+Logs/
+*.meta
+*.csproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
