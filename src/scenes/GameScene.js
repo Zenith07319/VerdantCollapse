@@ -35,6 +35,7 @@ export default class GameScene extends Phaser.Scene {
     this.enemies     = this.physics.add.group({ maxSize: MAX_ENEMIES });
     this.projectiles = this.physics.add.group({ maxSize: 500, runChildUpdate: false });
     this.xpGems      = this.physics.add.group({ maxSize: 600 });
+    this.shadowGraphics = this.add.graphics().setDepth(1);
 
     // ── 충돌 ──────────────────────────────────────────────────────────
     this.physics.add.overlap(this.projectiles, this.enemies,  this.onProjHitEnemy,  null, this);
@@ -88,6 +89,7 @@ export default class GameScene extends Phaser.Scene {
     this.updateEnemies(dt);
     this.updateWeapons(dt);
     this.updateXPGems();
+    this.drawShadows();
     this.spawnEnemies(dt);
     this.checkBossSpawns();
     this.updateHpRegen(dt);
@@ -111,6 +113,7 @@ export default class GameScene extends Phaser.Scene {
     if (k.down.isDown  || k.down2.isDown)  vy += 1;
     if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
     this.player.setVelocity(vx * this.ps.moveSpeed, vy * this.ps.moveSpeed);
+    this.player.setDepth(3 + (this.player.y + 2000) * 0.005 + 0.5);
   }
 
   updateHpRegen(dt) {
@@ -253,6 +256,7 @@ export default class GameScene extends Phaser.Scene {
         const spd   = e.def.speed * slow * this.getEnrageMult();
         e.setVelocity(Math.cos(angle) * spd, Math.sin(angle) * spd);
       }
+      e.setDepth(3 + (e.y + 2000) * 0.005);
     });
   }
 
@@ -320,7 +324,7 @@ export default class GameScene extends Phaser.Scene {
   spawnProjectile(key, x, y, angle, speed, props) {
     const p = this.projectiles.get(x, y, key);
     if (!p) return null;
-    p.setActive(true).setVisible(true).setDepth(8);
+    p.setActive(true).setVisible(true).setDepth(25);
     p.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
     Object.assign(p, { hitCount: 0, isSplit: false }, props);
     return p;
@@ -464,7 +468,7 @@ export default class GameScene extends Phaser.Scene {
         'xp_gem'
       );
       if (gem) {
-        gem.setActive(true).setVisible(true).setDepth(3);
+        gem.setActive(true).setVisible(true).setDepth(2);
         gem.xpValue = enemy.def.xp / gemCount;
       }
     }
@@ -566,11 +570,28 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  // ── 그림자 ────────────────────────────────────────────────────────────
+  drawShadows() {
+    const cam = this.cameras.main;
+    const hw = (cam.width  / cam.zoom) / 2 + 80;
+    const hh = (cam.height / cam.zoom) / 2 + 80;
+    const px = this.player.x, py = this.player.y;
+    this.shadowGraphics.clear();
+    this.shadowGraphics.fillStyle(0x000000, 0.28);
+    this.enemies.getChildren().forEach(e => {
+      if (!e.active) return;
+      if (Math.abs(e.x - px) > hw || Math.abs(e.y - py) > hh) return;
+      const r = e.def.radius;
+      this.shadowGraphics.fillEllipse(e.x + r * 0.2, e.y + r * 0.65, r * 2.0, r * 0.65);
+    });
+    this.shadowGraphics.fillEllipse(px + 3, py + 13, 30, 10);
+  }
+
   // ── 이펙트: 공통 ──────────────────────────────────────────────────────
   createHitEffect(weaponId, x, y) {
     if (weaponId === 'ember_shard') {
       // 불꽃 링
-      const ring = this.add.image(x, y, 'fx_explode').setScale(0.25).setDepth(15);
+      const ring = this.add.image(x, y, 'fx_explode').setScale(0.25).setDepth(30);
       this.tweens.add({
         targets: ring, scale: 1.2, alpha: 0,
         duration: 320, ease: 'Power2',
@@ -579,7 +600,7 @@ export default class GameScene extends Phaser.Scene {
       // 불꽃 파편
       for (let i = 0; i < 5; i++) {
         const angle = (Math.PI * 2 * i / 5) + Math.random() * 0.6;
-        const em = this.add.image(x, y, 'fx_ember').setDepth(15);
+        const em = this.add.image(x, y, 'fx_ember').setDepth(30);
         this.tweens.add({
           targets: em,
           x: x + Math.cos(angle) * 32, y: y + Math.sin(angle) * 32,
@@ -591,7 +612,7 @@ export default class GameScene extends Phaser.Scene {
 
     } else if (weaponId === 'tide_pulse') {
       // 물결 링
-      const ring = this.add.image(x, y, 'fx_ripple').setScale(0.25).setDepth(15);
+      const ring = this.add.image(x, y, 'fx_ripple').setScale(0.25).setDepth(30);
       this.tweens.add({
         targets: ring, scale: 1.3, alpha: 0,
         duration: 400, ease: 'Sine.easeOut',
@@ -603,7 +624,7 @@ export default class GameScene extends Phaser.Scene {
           x + Phaser.Math.FloatBetween(-10, 10),
           y + Phaser.Math.FloatBetween(-6, 6),
           'fx_drop'
-        ).setDepth(15);
+        ).setDepth(30);
         this.tweens.add({
           targets: drop, y: drop.y - 28, alpha: 0,
           duration: 480, ease: 'Sine.easeOut',
@@ -615,7 +636,7 @@ export default class GameScene extends Phaser.Scene {
       // root_arrow: 스파크 방사
       for (let i = 0; i < 6; i++) {
         const angle = (Math.PI * 2 * i / 6);
-        const sp = this.add.image(x, y, 'fx_spark').setScale(0.7).setDepth(15);
+        const sp = this.add.image(x, y, 'fx_spark').setScale(0.7).setDepth(30);
         this.tweens.add({
           targets: sp,
           x: x + Math.cos(angle) * 26, y: y + Math.sin(angle) * 26,
@@ -628,7 +649,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createRootEffect(x, y) {
-    const ring = this.add.image(x, y, 'fx_root').setScale(0.35).setDepth(15);
+    const ring = this.add.image(x, y, 'fx_root').setScale(0.35).setDepth(30);
     this.tweens.add({
       targets: ring, scale: 1.1, alpha: 0,
       duration: 500, ease: 'Power1',
@@ -640,7 +661,7 @@ export default class GameScene extends Phaser.Scene {
     const radius = 80 * this.ps.areaMultiplier;
 
     // 큰 폭발 링
-    const ring = this.add.image(x, y, 'fx_explode').setScale(0.15).setDepth(15);
+    const ring = this.add.image(x, y, 'fx_explode').setScale(0.15).setDepth(30);
     this.tweens.add({
       targets: ring, scale: radius / 14, alpha: 0,
       duration: 480, ease: 'Power2',
@@ -649,7 +670,7 @@ export default class GameScene extends Phaser.Scene {
     // 방사형 불씨
     for (let i = 0; i < 8; i++) {
       const angle = (Math.PI * 2 * i / 8);
-      const em = this.add.image(x, y, 'fx_ember').setDepth(15);
+      const em = this.add.image(x, y, 'fx_ember').setDepth(30);
       this.tweens.add({
         targets: em,
         x: x + Math.cos(angle) * radius * 0.7,
@@ -683,12 +704,12 @@ export default class GameScene extends Phaser.Scene {
 
       // 체인 번개 선
       const ln = current, nt = nearest;
-      const g = this.add.graphics().setDepth(16);
+      const g = this.add.graphics().setDepth(31);
       g.lineStyle(2, 0x44aaff, 0.9);
       g.lineBetween(ln.x, ln.y, nt.x, nt.y);
-      const node = this.add.image(nt.x, nt.y, 'fx_chain_node').setScale(0.8).setDepth(16);
+      const node = this.add.image(nt.x, nt.y, 'fx_chain_node').setScale(0.8).setDepth(31);
       // 물결 이펙트
-      const rip = this.add.image(nt.x, nt.y, 'fx_ripple').setScale(0.2).setDepth(15);
+      const rip = this.add.image(nt.x, nt.y, 'fx_ripple').setScale(0.2).setDepth(30);
       this.tweens.add({ targets: rip, scale: 0.9, alpha: 0, duration: 350, onComplete: () => rip.destroy() });
       this.tweens.add({ targets: [g, node], alpha: 0, duration: 280, onComplete: () => { g.destroy(); node.destroy(); } });
 
@@ -708,7 +729,7 @@ export default class GameScene extends Phaser.Scene {
   createSporeExplosion(x, y, dmg) {
     const radius = 90;
     // 포자 링 (노랑-초록 계열, fx_root 재사용 + 틴트)
-    const ring = this.add.image(x, y, 'fx_root').setScale(0.2).setTint(0xccff44).setDepth(15);
+    const ring = this.add.image(x, y, 'fx_root').setScale(0.2).setTint(0xccff44).setDepth(30);
     this.tweens.add({
       targets: ring, scale: radius / 14, alpha: 0,
       duration: 420, ease: 'Power2',
@@ -717,7 +738,7 @@ export default class GameScene extends Phaser.Scene {
     // 포자 파편
     for (let i = 0; i < 7; i++) {
       const angle = (Math.PI * 2 * i / 7);
-      const sp = this.add.image(x, y, 'fx_spark').setTint(0xaaff44).setScale(0.65).setDepth(15);
+      const sp = this.add.image(x, y, 'fx_spark').setTint(0xaaff44).setScale(0.65).setDepth(30);
       this.tweens.add({
         targets: sp,
         x: x + Math.cos(angle) * radius * 0.65,
@@ -751,7 +772,7 @@ export default class GameScene extends Phaser.Scene {
     const txt = this.add.text(x, y - 10, Math.round(dmg), {
       fontSize: '14px', fontFamily: 'monospace',
       color, stroke: '#000', strokeThickness: 3,
-    }).setDepth(20).setOrigin(0.5);
+    }).setDepth(35).setOrigin(0.5);
 
     this.tweens.add({
       targets: txt, y: y - 45, alpha: 0,

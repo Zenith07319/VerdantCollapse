@@ -282,18 +282,40 @@ export default class BootScene extends Phaser.Scene {
       ctx.closePath(); ctx.fill();
     });
 
-    // ── 배경 타일 (64×64) ───────────────────────────────────────────
-    tex('bg_tile', 64, 64, (ctx, w, h) => {
-      ctx.fillStyle = '#070d07'; ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = 'rgba(20,50,20,0.5)'; ctx.lineWidth = 1;
-      ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
-      ctx.strokeStyle = 'rgba(15,38,15,0.3)'; ctx.lineWidth = 0.5;
-      ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
-      const vgn = ctx.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, 38);
-      vgn.addColorStop(0, 'rgba(20,50,15,0.08)');
-      vgn.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = vgn; ctx.fillRect(0, 0, w, h);
+    // ── 배경 타일 (128×128) — 베벨 돌바닥 ──────────────────────────
+    tex('bg_tile', 128, 128, (ctx, w, h) => {
+      // 줄눈(grout) 베이스
+      ctx.fillStyle = '#030703'; ctx.fillRect(0, 0, w, h);
+      // 4×4 돌 블록 (각 32×32, 줄눈 2px)
+      const gs = 2, cols = 4, rows = 4;
+      const cw = w / cols, ch = h / rows;
+      const stones = [
+        '#0c1d09','#0b1c08','#0d1f0b','#0e200c',
+        '#0b1b08','#0e200c','#0c1e0a','#0d1e0a',
+        '#0d1f0b','#0c1d09','#0b1c08','#0f210d',
+        '#0e200c','#0b1b08','#0d1e0a','#0c1d09',
+      ];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = c * cw + gs, y = r * ch + gs;
+          const bw = cw - gs * 2, bh = ch - gs * 2;
+          // 돌 면
+          ctx.fillStyle = stones[r * cols + c];
+          ctx.fillRect(x, y, bw, bh);
+          // 위/왼쪽 하이라이트 (빛이 위에서)
+          ctx.fillStyle = 'rgba(255,255,255,0.055)';
+          ctx.fillRect(x, y, bw, 3);
+          ctx.fillRect(x, y, 3, bh);
+          // 아래/오른쪽 그림자
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.fillRect(x, y + bh - 3, bw, 3);
+          ctx.fillRect(x + bw - 3, y, 3, bh);
+        }
+      }
+      // 이끼 패치
+      ctx.fillStyle = 'rgba(20,60,8,0.38)';
+      for (const [mx, my, mr] of [[18,12,4],[55,40,3],[95,18,5],[30,75,3],[80,95,4],[110,60,3],[42,108,3],[70,30,2]])
+        { ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI*2); ctx.fill(); }
     });
 
     // ── verdant_leviathan (64×64) ────────────────────────────────────
