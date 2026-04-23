@@ -51,9 +51,12 @@ export default class GameScene extends Phaser.Scene {
       up2: 'UP', down2: 'DOWN', left2: 'LEFT', right2: 'RIGHT',
     });
 
-    this.gameTime     = 0;
-    this.spawnAccum   = 0;
-    this.isOver       = false;
+    this.gameTime       = 0;
+    this.waveNumber     = 0;
+    this.nextWaveTime   = 0;
+    this.waveSpawnQueue = 0;
+    this.waveSpawnAccum = 0;
+    this.isOver         = false;
     this.isPaused     = false;
     this.activeBoss   = null;
     this.spawnedBosses = new Set();
@@ -90,7 +93,7 @@ export default class GameScene extends Phaser.Scene {
     this.updateWeapons(dt);
     this.updateXPGems();
     this.drawShadows();
-    this.spawnEnemies(dt);
+    this.updateWaves(dt);
     this.checkBossSpawns();
     this.updateHpRegen(dt);
     if (this.ps.iframes   > 0) this.ps.iframes   -= dt;
@@ -168,18 +171,51 @@ export default class GameScene extends Phaser.Scene {
     e.rootTimer = 0;
     this.activeBoss = e;
     this.cameras.main.shake(500, 0.025);
+    // 보스 출현 시 추가 웨이브
+    const bossCount = 50 + Math.floor(this.gameTime / 60) * 5;
+    this.waveSpawnQueue += bossCount;
     return true;
   }
 
   // ── 적 스폰 ────────────────────────────────────────────────────────────
-  spawnEnemies(dt) {
-    const minutes = this.gameTime / 60;
-    const rate = getSpawnRate(minutes);
-    this.spawnAccum += rate * dt;
-    while (this.spawnAccum >= 1 && this.enemies.getLength() < MAX_ENEMIES) {
-      this.spawnAccum -= 1;
-      this.spawnOneEnemy(minutes);
+  updateWaves(dt) {
+    // 2분마다 새 웨이브
+    if (this.gameTime >= this.nextWaveTime) {
+      this.nextWaveTime += 120;
+      this.waveNumber++;
+      const count = 40 + this.waveNumber * 25;
+      this.waveSpawnQueue += count;
+      this.showWaveAnnouncement(this.waveNumber, count);
     }
+    // 웨이브 스폰 (15마리/초)
+    if (this.waveSpawnQueue > 0) {
+      this.waveSpawnAccum += 15 * dt;
+      const minutes = this.gameTime / 60;
+      while (this.waveSpawnAccum >= 1 && this.waveSpawnQueue > 0 && this.enemies.getLength() < MAX_ENEMIES) {
+        this.waveSpawnAccum -= 1;
+        this.waveSpawnQueue--;
+        this.spawnOneEnemy(minutes);
+      }
+    }
+  }
+
+  showWaveAnnouncement(waveNum, count) {
+    this.cameras.main.shake(350, 0.016);
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+    const title = this.add.text(cx, cy - 80, `WAVE ${waveNum}`, {
+      fontSize: '40px', fontFamily: 'monospace', color: '#ffdd44',
+      stroke: '#000', strokeThickness: 5,
+    }).setDepth(50).setOrigin(0.5).setScrollFactor(0);
+    const sub = this.add.text(cx, cy - 35, `적 ${count}마리 출현!`, {
+      fontSize: '18px', fontFamily: 'monospace', color: '#ffaa44',
+      stroke: '#000', strokeThickness: 3,
+    }).setDepth(50).setOrigin(0.5).setScrollFactor(0);
+    this.tweens.add({
+      targets: [title, sub], alpha: 0, y: '-=50',
+      duration: 2000, delay: 1200, ease: 'Power1',
+      onComplete: () => { title.destroy(); sub.destroy(); },
+    });
   }
 
   spawnOneEnemy(minutes) {

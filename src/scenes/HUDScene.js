@@ -27,6 +27,12 @@ export default class HUDScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(102);
 
+    // ── 웨이브 (타이머 아래) ─────────────────────────────────────────
+    this.waveText = this.add.text(W / 2, 38, '', {
+      fontSize: '13px', fontFamily: 'monospace', color: '#ffaa44',
+      stroke: '#000', strokeThickness: 2,
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(102);
+
     // ── 킬 / 골드 (우상단) ────────────────────────────────────────
     this.killText = this.add.text(W - 10, 10, '☠ 0', {
       fontSize: '14px', fontFamily: 'monospace', color: '#ffcccc',
@@ -95,6 +101,14 @@ export default class HUDScene extends Phaser.Scene {
     const s   = Math.floor(rem % 60).toString().padStart(2, '0');
     this.timerText.setText(`${m}:${s}`);
     this.timerText.setColor(rem < 300 ? '#ff4444' : rem < 600 ? '#ffcc00' : '#ffffff');
+
+    // 웨이브 카운터
+    if (g.waveSpawnQueue > 0) {
+      this.waveText.setText(`WAVE ${g.waveNumber}  ▼ 진행 중`);
+    } else {
+      const secs = Math.max(0, Math.ceil((g.nextWaveTime || 0) - g.gameTime));
+      this.waveText.setText(`WAVE ${g.waveNumber}  |  다음: ${secs}초`);
+    }
 
     // 킬 / 골드
     this.killText.setText(`☠ ${ps.kills.toLocaleString()}`);
