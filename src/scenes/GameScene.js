@@ -57,6 +57,7 @@ export default class GameScene extends Phaser.Scene {
     this.activeBoss   = null;
     this.spawnedBosses = new Set();
     this.ps.riptideBuff = 0;
+    this.enrageLevel = 0;
 
     this.pauseKey = this.input.keyboard.addKey('ESC');
     this.pKey     = this.input.keyboard.addKey('P');
@@ -76,6 +77,12 @@ export default class GameScene extends Phaser.Scene {
     const dt = delta / 1000;
     this.gameTime += dt;
     if (this.gameTime >= RUN_DURATION) { this.endGame(true); return; }
+
+    const newEnrage = Math.floor(this.gameTime / 300);
+    if (newEnrage > this.enrageLevel) {
+      this.enrageLevel = newEnrage;
+      this.showEnrageWarning(this.enrageLevel);
+    }
 
     this.updatePlayer(dt);
     this.updateEnemies(dt);
@@ -111,28 +118,46 @@ export default class GameScene extends Phaser.Scene {
       this.ps.hp = Math.min(this.ps.maxHp, this.ps.hp + this.ps.hpRegen * dt);
   }
 
+  getEnrageMult() { return 1 + this.enrageLevel * 0.15; }
+
+  showEnrageWarning(level) {
+    this.cameras.main.shake(300, 0.02);
+    const txt = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2 - 60,
+      `⚠ ENRAGE Lv.${level}  적 강화 +${level * 15}%`,
+      { fontSize: '22px', fontFamily: 'monospace', color: '#ff4400', stroke: '#000', strokeThickness: 4 }
+    ).setDepth(50).setOrigin(0.5).setScrollFactor(0);
+    this.tweens.add({
+      targets: txt,
+      y: this.cameras.main.height / 2 - 110,
+      alpha: 0,
+      duration: 2500, ease: 'Power1',
+      onComplete: () => txt.destroy(),
+    });
+  }
+
   // ── 보스 스폰 ─────────────────────────────────────────────────────────
   checkBossSpawns() {
     const minutes = this.gameTime / 60;
     for (const def of Object.values(ENEMIES)) {
       if (!def.isBoss) continue;
       if (minutes >= def.spawnMinute && !this.spawnedBosses.has(def.id)) {
-        this.spawnedBosses.add(def.id);
-        this.spawnBoss(def);
+        if (this.spawnBoss(def)) this.spawnedBosses.add(def.id);
       }
     }
   }
 
-  spawnBoss(def) {
+  spawnBoss(def, hpBoost = 1) {
     const pos = this.getSpawnPos();
     const e = this.enemies.get(pos.x, pos.y, def.id);
-    if (!e) return;
+    if (!e) return false;
     const minutes = this.gameTime / 60;
     const hpMult = 1 + def.hpScale * minutes;
     e.setActive(true).setVisible(true).setDepth(6);
     e.setCircle(def.radius);
     e.def = def;
-    e.hp = def.hp * hpMult;
+    e.hp = def.hp * hpMult * hpBoost;
     e.maxHp = e.hp;
     e.contactCooldown = 0;
     e.slowTimer = 0; e.slowAmount = 0;
@@ -140,6 +165,7 @@ export default class GameScene extends Phaser.Scene {
     e.rootTimer = 0;
     this.activeBoss = e;
     this.cameras.main.shake(500, 0.025);
+    return true;
   }
 
   // ── 적 스폰 ────────────────────────────────────────────────────────────
@@ -224,7 +250,7 @@ export default class GameScene extends Phaser.Scene {
       } else {
         const slow  = e.slowTimer > 0 ? (1 - e.slowAmount) : 1;
         const angle = Phaser.Math.Angle.Between(e.x, e.y, px, py);
-        const spd   = e.def.speed * slow;
+        const spd   = e.def.speed * slow * this.getEnrageMult();
         e.setVelocity(Math.cos(angle) * spd, Math.sin(angle) * spd);
       }
     });
@@ -412,7 +438,13 @@ export default class GameScene extends Phaser.Scene {
   }
 
   killEnemy(enemy) {
-    if (enemy.def.isBoss && this.activeBoss === enemy) this.activeBoss = null;
+    if (enemy.def.isBoss) {
+      if (this.activeBoss === enemy) this.activeBoss = null;
+      const bossDef = enemy.def;
+      this.time.delayedCall(3 * 60 * 1000, () => {
+        if (!this.isOver) this.spawnBoss(bossDef, 1.5);
+      });
+    }
 
     // riptide: 감속 중 처치 시 Tide Pulse 관통+2 버프
     if (enemy.slowTimer > 0) {
@@ -447,7 +479,7 @@ export default class GameScene extends Phaser.Scene {
     if (enemy.contactCooldown > 0) return;
 
     enemy.contactCooldown = enemy.def.contactCooldown;
-    this.ps.hp -= enemy.def.damage;
+    this.ps.hp -= Math.round(enemy.def.damage * this.getEnrageMult());
     this.ps.iframes = 0.5;
     this.cameras.main.shake(150, 0.012);
     this.player.setTint(0xff4444);

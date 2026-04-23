@@ -25,8 +25,8 @@ export const ENEMIES = {
     id: 'stalker_elite', name: 'Stalker Elite',
     hp: 225, speed: 70, damage: 25, contactCooldown: 0.8,
     xp: 30, gold: 15, radius: 20,
-    color: 0xff3366, hpScale: 0.1, spawnWeight: 0.3,
-    minMinute: 3, isElite: true,
+    color: 0xff3366, hpScale: 0.1, spawnWeight: 0.6,
+    minMinute: 1, isElite: true,
   },
 
   verdant_leviathan: {
@@ -54,8 +54,8 @@ export const ENEMIES = {
 
 // ── 스폰율 곡선 (분 → 초당 스폰 수) ────────────────────────────────────
 export const SPAWN_CURVE = [
-  [0, 0.5], [3, 2.0], [6, 4.5], [10, 7.0],
-  [15, 10.0], [18, 12.0], [20, 12.0],
+  [0, 0.8], [3, 3.0], [6, 6.5], [10, 10.5],
+  [15, 15.0], [18, 18.0], [20, 18.0],
 ];
 export const MAX_ENEMIES = 350;
 
@@ -65,7 +65,7 @@ export const WEAPONS = {
     id: 'ember_shard', name: 'Ember Shard', color: 0xff6600,
     maxLevel: 8,
     levels: [
-      { damage: 18, cooldown: 1.4, projCount: 1, speed: 380, pierce: 0, desc: '기본 화염탄' },
+      { damage: 13, cooldown: 1.8, projCount: 1, speed: 380, pierce: 0, desc: '기본 화염탄' },
       { damage: 22, cooldown: 1.3, projCount: 1, speed: 390, pierce: 1, desc: '관통+1' },
       { damage: 28, cooldown: 1.2, projCount: 2, speed: 400, pierce: 1, desc: '2발 동시' },
       { damage: 32, cooldown: 1.1, projCount: 2, speed: 410, pierce: 1, burn: true, desc: '화상 DoT 추가' },
