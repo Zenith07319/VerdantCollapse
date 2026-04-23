@@ -31,21 +31,21 @@ export const ENEMIES = {
 
   verdant_leviathan: {
     id: 'verdant_leviathan', name: 'Verdant Leviathan',
-    hp: 800, speed: 55, damage: 35, contactCooldown: 0.8,
+    hp: 80000, speed: 55, damage: 35, contactCooldown: 0.8,
     xp: 200, gold: 50, radius: 28,
     hpScale: 0.1, spawnWeight: 0,
     isBoss: true, spawnMinute: 5,
   },
   ashen_colossus: {
     id: 'ashen_colossus', name: 'Ashen Colossus',
-    hp: 2000, speed: 65, damage: 50, contactCooldown: 0.8,
+    hp: 200000, speed: 65, damage: 50, contactCooldown: 0.8,
     xp: 500, gold: 100, radius: 34,
     hpScale: 0.12, spawnWeight: 0,
     isBoss: true, spawnMinute: 10,
   },
   void_patriarch: {
     id: 'void_patriarch', name: 'Void Patriarch',
-    hp: 5000, speed: 75, damage: 70, contactCooldown: 0.6,
+    hp: 500000, speed: 75, damage: 70, contactCooldown: 0.6,
     xp: 1000, gold: 200, radius: 42,
     hpScale: 0.15, spawnWeight: 0,
     isBoss: true, spawnMinute: 15,
@@ -54,10 +54,10 @@ export const ENEMIES = {
 
 // ── 스폰율 곡선 (분 → 초당 스폰 수) ────────────────────────────────────
 export const SPAWN_CURVE = [
-  [0, 0.8], [3, 3.0], [6, 6.5], [10, 10.5],
-  [15, 15.0], [18, 18.0], [20, 18.0],
+  [0, 8], [3, 30], [6, 65], [10, 105],
+  [15, 150], [18, 180], [20, 180],
 ];
-export const MAX_ENEMIES = 350;
+export const MAX_ENEMIES = 1200;
 
 // ── 무기 정의 ─────────────────────────────────────────────────────────────
 export const WEAPONS = {
@@ -134,7 +134,7 @@ export const PASSIVES = {
 
 // ── XP 테이블 ─────────────────────────────────────────────────────────────
 export function xpRequired(level) {
-  return Math.ceil(5 * Math.pow(level, 1.5));
+  return Math.ceil(50 * Math.pow(level, 1.5));
 }
 
 // ── 스폰율 보간 ───────────────────────────────────────────────────────────
