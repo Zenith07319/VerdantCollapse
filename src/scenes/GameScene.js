@@ -56,6 +56,7 @@ export default class GameScene extends Phaser.Scene {
     this.waveSpawnQueue = 0;
     this.waveSpawnAccum = 0;
     this.waveClearDelay = 1.5;
+    this.waveTheme      = 'mixed';
     this.isOver         = false;
     this.isPaused     = false;
     this.activeBoss   = null;
@@ -202,18 +203,25 @@ export default class GameScene extends Phaser.Scene {
     this.waveSpawnQueue = count;
     this.waveSpawnAccum = 0;
     this.waveClearDelay = 3.0;
-    this.showWaveAnnouncement(this.waveNumber, count);
+    const themes = ['void_crawler','spore_walker','mixed','toxic_shambler','stalker_elite','mixed'];
+    this.waveTheme = themes[(this.waveNumber - 1) % themes.length];
+    this.showWaveAnnouncement(this.waveNumber, count, this.waveTheme);
   }
 
-  showWaveAnnouncement(waveNum, count) {
+  showWaveAnnouncement(waveNum, count, theme) {
+    const labels = {
+      void_crawler: '◈ 군집 웨이브', spore_walker: '◈ 포자 웨이브',
+      toxic_shambler: '◈ 독타 웨이브', stalker_elite: '◈ 정예 웨이브', mixed: '',
+    };
+    const themeLine = labels[theme] || '';
     this.cameras.main.shake(350, 0.016);
     const cx = this.cameras.main.width / 2;
     const cy = this.cameras.main.height / 2;
-    const title = this.add.text(cx, cy - 80, `WAVE ${waveNum}`, {
-      fontSize: '40px', fontFamily: 'monospace', color: '#ffdd44',
+    const title = this.add.text(cx, cy - 80, `WAVE ${waveNum}${themeLine ? '  ' + themeLine : ''}`, {
+      fontSize: '36px', fontFamily: 'monospace', color: '#ffdd44',
       stroke: '#000', strokeThickness: 5,
     }).setDepth(50).setOrigin(0.5).setScrollFactor(0);
-    const sub = this.add.text(cx, cy - 35, `적 ${count}마리 출현!`, {
+    const sub = this.add.text(cx, cy - 38, `적 ${count}마리 출현!`, {
       fontSize: '18px', fontFamily: 'monospace', color: '#ffaa44',
       stroke: '#000', strokeThickness: 3,
     }).setDepth(50).setOrigin(0.5).setScrollFactor(0);
@@ -225,12 +233,17 @@ export default class GameScene extends Phaser.Scene {
   }
 
   spawnOneEnemy(minutes) {
-    const candidates = Object.values(ENEMIES).filter(d => !d.isBoss && minutes >= d.minMinute);
+    const theme = this.waveTheme;
+    let candidates;
+    if (theme && theme !== 'mixed' && ENEMIES[theme] && minutes >= ENEMIES[theme].minMinute) {
+      candidates = [ENEMIES[theme]];
+    } else {
+      candidates = Object.values(ENEMIES).filter(d => !d.isBoss && minutes >= d.minMinute);
+    }
     if (!candidates.length) return;
 
     const totalW = candidates.reduce((s, d) => s + d.spawnWeight, 0);
-    let roll = Math.random() * totalW;
-    let def = candidates[0];
+    let roll = Math.random() * totalW, def = candidates[0];
     for (const d of candidates) { roll -= d.spawnWeight; if (roll <= 0) { def = d; break; } }
 
     const pos = this.getSpawnPos();
@@ -238,7 +251,7 @@ export default class GameScene extends Phaser.Scene {
     if (!e) return;
 
     const hpMult = 1 + def.hpScale * minutes;
-    e.setActive(true).setVisible(true).setDepth(5);
+    e.setActive(true).setVisible(true).setDepth(5).setScale(1);
     e.setCircle(def.radius);
     e.def = def;
     e.hp = def.hp * hpMult;
@@ -247,6 +260,9 @@ export default class GameScene extends Phaser.Scene {
     e.slowTimer  = 0; e.slowAmount = 0;
     e.burnTimer  = 0; e.burnDmg   = 0; e.burnAccum = 0;
     e.rootTimer  = 0;
+    e.isSplit    = false;
+    e.puddleTimer = 2 + Math.random() * 2;
+    e.dashTimer  = 4 + Math.random() * 2; e.dashWindup = 0; e.dashActive = false;
   }
 
   getSpawnPos() {
@@ -287,16 +303,56 @@ export default class GameScene extends Phaser.Scene {
 
       if (e.slowTimer > 0) e.slowTimer -= dt;
 
+      // ── Spore Walker 독기 웅덩이 ─────────────────────────────────
+      if (e.def.id === 'spore_walker') {
+        e.puddleTimer -= dt;
+        if (e.puddleTimer <= 0) {
+          e.puddleTimer = 3 + Math.random() * 3;
+          this.createPoisonPuddle(e.x, e.y);
+        }
+      }
+
       // ── 이동: 속박 중이면 정지 ───────────────────────────────────
       if (e.rootTimer > 0) {
         e.rootTimer -= dt;
         e.setVelocity(0, 0);
         if (e.rootTimer <= 0) { e.rootTimer = 0; if (e.active) this.refreshEnemyTint(e); }
       } else {
-        const slow  = e.slowTimer > 0 ? (1 - e.slowAmount) : 1;
-        const angle = Phaser.Math.Angle.Between(e.x, e.y, px, py);
-        const spd   = e.def.speed * slow * this.getEnrageMult();
-        e.setVelocity(Math.cos(angle) * spd, Math.sin(angle) * spd);
+        // Stalker Elite 대시
+        let customVel = false;
+        if (e.def.id === 'stalker_elite') {
+          if (e.dashActive) {
+            e.dashDuration -= dt;
+            if (e.dashDuration <= 0) {
+              e.dashActive = false; e.dashTimer = 4 + Math.random() * 2;
+            } else {
+              const da = Phaser.Math.Angle.Between(e.x, e.y, e.dashTargetX, e.dashTargetY);
+              e.setVelocity(Math.cos(da) * 680, Math.sin(da) * 680);
+              customVel = true;
+            }
+          } else if (e.dashWindup > 0) {
+            e.dashWindup -= dt;
+            e.setVelocity(0, 0);
+            customVel = true;
+            if (e.dashWindup <= 0) {
+              e.dashActive = true; e.dashDuration = 0.35;
+              e.dashTargetX = px; e.dashTargetY = py;
+            }
+          } else {
+            e.dashTimer -= dt;
+            if (e.dashTimer <= 0) {
+              e.dashWindup = 0.5;
+              e.setTint(0xff2200);
+              this.time.delayedCall(400, () => { if (e.active) this.refreshEnemyTint(e); });
+            }
+          }
+        }
+        if (!customVel) {
+          const slow  = e.slowTimer > 0 ? (1 - e.slowAmount) : 1;
+          const angle = Phaser.Math.Angle.Between(e.x, e.y, px, py);
+          const spd   = e.def.speed * slow * this.getEnrageMult();
+          e.setVelocity(Math.cos(angle) * spd, Math.sin(angle) * spd);
+        }
       }
       e.setDepth(3 + (e.y + 2000) * 0.005);
     });
@@ -490,6 +546,34 @@ export default class GameScene extends Phaser.Scene {
       this.time.delayedCall(3 * 60 * 1000, () => {
         if (!this.isOver) this.spawnBoss(bossDef, 1.5);
       });
+    }
+
+    // Void Crawler 분열
+    if (enemy.def.id === 'void_crawler' && !enemy.isSplit) {
+      for (let i = 0; i < 2; i++) {
+        const se = this.enemies.get(
+          enemy.x + Phaser.Math.FloatBetween(-18, 18),
+          enemy.y + Phaser.Math.FloatBetween(-18, 18),
+          'void_crawler'
+        );
+        if (!se) continue;
+        const sd = { ...enemy.def, radius: 7, speed: enemy.def.speed * 1.2, damage: Math.ceil(enemy.def.damage * 0.6) };
+        se.setActive(true).setVisible(true).setDepth(5).setScale(0.6);
+        se.setCircle(7);
+        se.def = sd;
+        se.hp = Math.max(1, Math.ceil(enemy.maxHp * 0.3));
+        se.maxHp = se.hp;
+        se.contactCooldown = 0;
+        se.slowTimer = 0; se.slowAmount = 0;
+        se.burnTimer = 0; se.burnDmg = 0; se.burnAccum = 0;
+        se.rootTimer = 0; se.isSplit = true;
+        se.puddleTimer = 99; se.dashTimer = 99; se.dashWindup = 0; se.dashActive = false;
+      }
+    }
+
+    // Toxic Shambler 죽음 폭발
+    if (enemy.def.id === 'toxic_shambler') {
+      this.createToxicExplosion(enemy.x, enemy.y, Math.round(enemy.def.damage * 1.5));
     }
 
     // riptide: 감속 중 처치 시 Tide Pulse 관통+2 버프
@@ -764,6 +848,66 @@ export default class GameScene extends Phaser.Scene {
 
       chained.add(nearest);
       current = nearest;
+    }
+  }
+
+  // ── Spore Walker 독기 웅덩이 ─────────────────────────────────────────
+  createPoisonPuddle(x, y) {
+    const radius = 38;
+    const puddle = this.add.image(x, y, 'fx_root')
+      .setScale(radius / 7).setTint(0x44ff00).setAlpha(0.45).setDepth(1.8);
+    let ticks = 0;
+    const maxTicks = 10;
+    this.time.addEvent({
+      delay: 500, repeat: maxTicks - 1,
+      callback: () => {
+        ticks++;
+        puddle.setAlpha(0.45 * (1 - ticks / maxTicks));
+        if (this.ps.iframes <= 0 &&
+            Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < radius) {
+          this.ps.hp = Math.max(0, this.ps.hp - 4);
+          this.ps.iframes = 0.2;
+          this.player.setTint(0x88ff00);
+          this.time.delayedCall(150, () => this.player.clearTint());
+          if (this.ps.hp <= 0) this.endGame(false);
+        }
+        if (ticks >= maxTicks) puddle.destroy();
+      },
+    });
+  }
+
+  // ── Toxic Shambler 죽음 폭발 ─────────────────────────────────────────
+  createToxicExplosion(x, y, dmg) {
+    const radius = 65;
+    const ring = this.add.image(x, y, 'fx_root').setScale(0.2).setTint(0x55ff00).setDepth(30);
+    this.tweens.add({
+      targets: ring, scale: radius / 14, alpha: 0,
+      duration: 550, ease: 'Power2',
+      onComplete: () => ring.destroy(),
+    });
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI * 2 * i / 6);
+      const sp = this.add.image(x, y, 'fx_spark').setTint(0x88ff00).setScale(0.8).setDepth(30);
+      this.tweens.add({
+        targets: sp,
+        x: x + Math.cos(angle) * radius * 0.8, y: y + Math.sin(angle) * radius * 0.8,
+        alpha: 0, scale: 0.2, duration: 500, ease: 'Power1',
+        onComplete: () => sp.destroy(),
+      });
+    }
+    this.enemies.getChildren().forEach(e => {
+      if (!e.active) return;
+      if (Phaser.Math.Distance.Between(x, y, e.x, e.y) < radius)
+        this.damageEnemy(e, dmg, e.x, e.y);
+    });
+    if (this.ps.iframes <= 0 &&
+        Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < radius) {
+      this.ps.hp = Math.max(0, this.ps.hp - dmg);
+      this.ps.iframes = 0.4;
+      this.cameras.main.shake(120, 0.01);
+      this.player.setTint(0x88ff00);
+      this.time.delayedCall(200, () => this.player.clearTint());
+      if (this.ps.hp <= 0) this.endGame(false);
     }
   }
 
