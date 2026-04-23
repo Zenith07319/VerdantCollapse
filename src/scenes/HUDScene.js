@@ -103,11 +103,13 @@ export default class HUDScene extends Phaser.Scene {
     this.timerText.setColor(rem < 300 ? '#ff4444' : rem < 600 ? '#ffcc00' : '#ffffff');
 
     // 웨이브 카운터
-    if (g.waveSpawnQueue > 0) {
-      this.waveText.setText(`WAVE ${g.waveNumber}  ▼ 진행 중`);
+    const wn = g.waveNumber || 0;
+    if ((g.waveSpawnQueue || 0) > 0) {
+      this.waveText.setText(`WAVE ${wn}  ▼ 진행 중`);
+    } else if (g.enemies && g.enemies.countActive(true) > 0) {
+      this.waveText.setText(`WAVE ${wn}  — 모두 처치 시 다음 웨이브`);
     } else {
-      const secs = Math.max(0, Math.ceil((g.nextWaveTime || 0) - g.gameTime));
-      this.waveText.setText(`WAVE ${g.waveNumber}  |  다음: ${secs}초`);
+      this.waveText.setText(`WAVE ${wn}  ✓ 클리어!`);
     }
 
     // 킬 / 골드

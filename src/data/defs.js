@@ -134,7 +134,7 @@ export const PASSIVES = {
 
 // ── XP 테이블 ─────────────────────────────────────────────────────────────
 export function xpRequired(level) {
-  return Math.ceil(50 * Math.pow(level, 1.5));
+  return Math.ceil(10 * Math.pow(level, 1.5));
 }
 
 // ── 스폰율 보간 ───────────────────────────────────────────────────────────

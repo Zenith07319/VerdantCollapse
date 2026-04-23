@@ -53,9 +53,9 @@ export default class GameScene extends Phaser.Scene {
 
     this.gameTime       = 0;
     this.waveNumber     = 0;
-    this.nextWaveTime   = 0;
     this.waveSpawnQueue = 0;
     this.waveSpawnAccum = 0;
+    this.waveClearDelay = 1.5;
     this.isOver         = false;
     this.isPaused     = false;
     this.activeBoss   = null;
@@ -174,21 +174,14 @@ export default class GameScene extends Phaser.Scene {
     // 보스 출현 시 추가 웨이브
     const bossCount = 50 + Math.floor(this.gameTime / 60) * 5;
     this.waveSpawnQueue += bossCount;
+    this.waveClearDelay = 3.0;
     return true;
   }
 
   // ── 적 스폰 ────────────────────────────────────────────────────────────
   updateWaves(dt) {
-    // 2분마다 새 웨이브
-    if (this.gameTime >= this.nextWaveTime) {
-      this.nextWaveTime += 120;
-      this.waveNumber++;
-      const count = 40 + this.waveNumber * 25;
-      this.waveSpawnQueue += count;
-      this.showWaveAnnouncement(this.waveNumber, count);
-    }
-    // 웨이브 스폰 (15마리/초)
     if (this.waveSpawnQueue > 0) {
+      // 스폰 진행 (15마리/초)
       this.waveSpawnAccum += 15 * dt;
       const minutes = this.gameTime / 60;
       while (this.waveSpawnAccum >= 1 && this.waveSpawnQueue > 0 && this.enemies.getLength() < MAX_ENEMIES) {
@@ -196,7 +189,20 @@ export default class GameScene extends Phaser.Scene {
         this.waveSpawnQueue--;
         this.spawnOneEnemy(minutes);
       }
+    } else if (this.enemies.countActive(true) === 0) {
+      // 모든 적 처치 → 다음 웨이브 대기
+      this.waveClearDelay -= dt;
+      if (this.waveClearDelay <= 0) this.startNextWave();
     }
+  }
+
+  startNextWave() {
+    this.waveNumber++;
+    const count = 40 + this.waveNumber * 25;
+    this.waveSpawnQueue = count;
+    this.waveSpawnAccum = 0;
+    this.waveClearDelay = 3.0;
+    this.showWaveAnnouncement(this.waveNumber, count);
   }
 
   showWaveAnnouncement(waveNum, count) {
