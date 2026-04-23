@@ -27,9 +27,20 @@ export default class LevelUpScene extends Phaser.Scene {
     const cardW = Math.min(200, (W - 80) / 3);
     const startX = W/2 - cardW - 20;
 
+    this.options = options;
+    this.gameScene = g;
+
     options.forEach((opt, i) => {
-      this.createCard(startX + i * (cardW + 20), H * 0.5, cardW, opt, g);
+      this.createCard(startX + i * (cardW + 20), H * 0.5, cardW, opt, i, g);
     });
+
+    // 숫자키 1/2/3 단축키
+    this.input.keyboard.once('keydown-ONE',   () => this.applyUpgrade(this.options[0], g));
+    this.input.keyboard.once('keydown-TWO',   () => this.applyUpgrade(this.options[1], g));
+    this.input.keyboard.once('keydown-THREE', () => this.applyUpgrade(this.options[2], g));
+    this.input.keyboard.once('keydown-NUMPAD_ONE',   () => this.applyUpgrade(this.options[0], g));
+    this.input.keyboard.once('keydown-NUMPAD_TWO',   () => this.applyUpgrade(this.options[1], g));
+    this.input.keyboard.once('keydown-NUMPAD_THREE', () => this.applyUpgrade(this.options[2], g));
   }
 
   // ── 선택지 생성 ────────────────────────────────────────────────────────
@@ -92,7 +103,7 @@ export default class LevelUpScene extends Phaser.Scene {
   }
 
   // ── 카드 UI ────────────────────────────────────────────────────────────
-  createCard(cx, cy, w, opt, g) {
+  createCard(cx, cy, w, opt, index, g) {
     const h = 180;
     const bg = this.add.rectangle(cx, cy, w, h, 0x1a1a22, 0.95)
       .setStrokeStyle(2, opt.color).setScrollFactor(0).setInteractive();
@@ -100,6 +111,11 @@ export default class LevelUpScene extends Phaser.Scene {
     // 아이콘
     const iconKey = opt.type === 'weapon' ? `icon_${opt.id}` : `icon_${opt.id}`;
     this.add.image(cx, cy - 55, iconKey).setScale(1.2).setScrollFactor(0);
+
+    // 번호 힌트
+    this.add.text(cx - w/2 + 6, cy - h/2 + 6, `[${index + 1}]`, {
+      fontSize: '11px', fontFamily: 'monospace', color: '#666688',
+    }).setOrigin(0, 0).setScrollFactor(0);
 
     // NEW 뱃지
     if (opt.isNew) {
